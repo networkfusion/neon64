@@ -11,8 +11,9 @@ rm hardware.inc
 
 # Append Super Mario Bros 1 for CEN64 Debug Version
 #n64tool -l 2M -h header -t "Neon64 1.2b 08/17/05" -o tmp.z64 neon64.bin
-#cat tmp.z64 smb1.nes > neon64-cen64.z64
+#cat tmp.z64 roms/smb1.nes > neon64-cen64.z64
 #chksum64 neon64-cen64.z64
+#cp neon64-cen64.z64 /home/visor/Share/debug.z64
 
 # 64drive Version
 n64tool -l 1052672B -h header -t "Neon64 1.2b 08/17/05" -o neon64bu.rom neon64.bin

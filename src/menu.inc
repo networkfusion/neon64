@@ -30,13 +30,13 @@ menucopy    ld      t3,(t0)
         la      t0,screenbuffer3
         _tpa(sw,t0,$a4400004)
 
-        _text_string(50,50,menuframe)
+        _text_string(40,50,menuframe)
         li  t4,0    ; first menu item selected initially
 
 menu_run_loop
         li  t1,0
         li  t3,58
-        li  t0,58
+        li  t0,48
         _tpa(sw,t0,text_x)
         _tpa(sw,r0,text_type)
 highlightloop
@@ -208,20 +208,51 @@ menu9_no
         j       menuend
         nop
 menua_no
-        bnez    t4,menub_no ; load state from ExMem
+        bnez    t4,menub_no ; save NES-SRAM to N64-SRAM
         addi    t4,-1
-        jal     LoadStateExMem
+
+        _tpa(lbu,t0,romc1)
+        andi    t0,2
+        beqz    t0,noSRAMsave
+        nop
+        jal     SAVE_NES_SRAM_TO_N64_SRAM
         nop
         j       menuend
         nop
 menub_no
-        bnez    t4,menuc_no ; save state to ExMem
+        bnez    t4,menuc_no ; load state from N64-SRAM
         addi    t4,-1
-        jal     SaveStateExMem
+        jal     LoadStateSRAM
         nop
         j       menuend
         nop
 menuc_no
+        bnez    t4,menud_no ; save state to N64-SRAM
+        addi    t4,-1
+        jal     SaveStateSRAM
+        nop
+        j       menuend
+        nop
+menud_no
+        bnez    t4,menue_no ; load state from ExMem
+        addi    t4,-1
+        _tpa(lbu,t0,SaveBeforeLoad) ; Need to save once before loading
+        blez    t0, noStateload
+        nop
+        jal     LoadStateExMem
+        nop
+noStateload        j       menuend
+        nop
+menue_no
+        bnez    t4,menuf_no ; save state to ExMem
+        addi    t4,-1
+        li      t0,1
+        _tpa(sb,t0,SaveBeforeLoad)
+        jal     SaveStateExMem
+        nop
+        j       menuend
+        nop
+menuf_no
 
 menuend
 mploop  jal     read_con ; wait until button released so it won't go
@@ -274,27 +305,30 @@ setscreenlimits
 ;192=À
 ;179=³
 ;217=Ù
-menuframe   db "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "³                     ³",$0a
-            db "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ",0
+menuframe   db "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "³                        ³",$0a
+            db "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ",0
 
-menu_cnt equ 13
+menu_cnt equ 16
 
 menu0       db "*Reset NES",0
 menu1       db "*Load new ROM - GS",0
-menu2       db "*Save SRAM  - C-Pak",0
+menu2       db "*Save NES-SRAM - C-Pak",0
 menu3       db "*PAL Mode "
 paltog      db "Off",0
 menu4       db "*Screenshot - v64jr",0
@@ -311,8 +345,11 @@ errtog      db "Off",0
 menua       db "*Debug info",0
 toggleon    db "On",0
 toggleoff   db "Off",0
-menub       db "*Load State - ExMem",0
-menuc       db "*Save State - ExMem",0
+menub       db "*Save NES-SRAM - 64-SRAM",0
+menuc       db "*Load State <- 64-SRAM",0
+menud       db "*Save State -> 64-SRAM",0
+menue       db "*Load State <- ExMem",0
+menuf       db "*Save State -> ExMem",0
 
 resetflag   db 0
 arkflag     db 0
@@ -323,7 +360,7 @@ frametoggle db 0
 dmcenable   db 1
 VIvidmode   db 0    ; 0=NTSC, 1=PAL (included here to persist past reset)
  _align(4)
-menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,menub,menuc,0
+menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,menub,menuc,menud,menue,menuf,0
 menuscrtemp dw  0
 ssntsc
         dw  $ED000000|(8<14)|(8<2)     ; SetScissor NTSC

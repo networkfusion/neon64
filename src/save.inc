@@ -23,7 +23,11 @@ loadSRAM
         nop
         bnez    t0,lsrconpackfound
         nop
-        j       loadSRAMend
+
+; if no controller pak found -> try loading from N64 SRAM
+        jal LOAD_NES_SRAM_FROM_N64_SRAM
+        nop
+        j  loadSRAMend
         nop
 lsrconpackfound
 ; All other subroutines should be able to use the sramheader that this loads,
@@ -49,7 +53,7 @@ lsrconpackfound
         j       loadSRAMend
         nop
 lsrfmtgood
-        _tpa(lhu,t0,doyouseewhatisee)        
+        _tpa(lhu,t0,doyouseewhatisee)
         _tpa(lhu,t1,sramheader+32)  ; save 0 CRC
         beq     t0,t1,SRAMfound
         li      t5,0
@@ -71,7 +75,7 @@ sramclearloop
 
         j       loadSRAMend
         nop
-        
+
 SRAMfound
 
         _tpa(sb,t5,savespace)
@@ -204,7 +208,7 @@ saveconpack
         addiu   t6,32
         addi    t5,1
         bnez    t7,saveconpack
-        addi    t7,-1        
+        addi    t7,-1
 
 saveSRAMend
         jal     cls
@@ -516,7 +520,7 @@ conpackfound
         _tpa(lw,ra,cfconpackra)
         jr      ra
         nop
-        
+
 ; t2=0 if wrong format, 1=right format
 checkformat
         _tpa(sw,ra,checkformatra)
