@@ -29,16 +29,41 @@ SaveStateExMem
 ; copy blocks to ExMem_FULL_STATE
 
 ; uncached
-  la  t0, (nops-firstvar-1)/8
+  la  t0, ((nops-firstvar)/8)-1
   la  t1, firstvar
   la  t2, FULL_STATE_RAMADRESS
   jal memcopy
   nop
 ; cached + NES registers
-  la    t0, (lastvar&$8fffffff-mem-1)/8
+  la    t0, ((lastvar&$8fffffff-mem)/8)-1
   la    t1, mem
   jal memcopy
   nop
+
+; Store PPU data
+  jal PauseRSP
+  nop
+  jal Wait_SP_DMA_FULL_REG
+  nop
+
+; DMA from DMEM
+  la      a0,0x0
+  move    a1, t2
+  li      a2,0x1000-8
+  lui     t0,$a404
+  sw      a0,0(t0)        ; a0=rspdest
+  sw      a1,4(t0)        ; a1=dram
+  sw      a2,0x0C(t0)     ; a2=size
+
+  jal Wait_SP_DMA_FULL_REG
+  nop
+  jal ResumeRSP
+  nop
+
+; restore a0, a1, a2
+  _tpa(ld, A6502_mempage, A6502_mempage_BAK)
+  _tpa(ld, A6502_readfcn, A6502_readfcn_BAK)
+  _tpa(ld, A6502_writefcn, A6502_writefcn_BAK)
 
   _tpa(lw,ra,statera)
   jr ra
@@ -52,18 +77,38 @@ LoadStateExMem
 ; copy blocks from ExMem_FULL_STATE
 
 ; uncached
-  la  t0, (nops-firstvar-1)/8
+  la  t0, ((nops-firstvar)/8)-1
   la  t1, FULL_STATE_RAMADRESS
   la  t2, firstvar
   jal memcopy
   nop
 ; cached + NES registers
-  la  t0, (lastvar&$8fffffff-mem-1)/8
+  la  t0, ((lastvar&$8fffffff-mem)/8)-1
   la  t2, mem
   jal memcopy
   nop
 
-; restore NES registers
+; Restore PPU data
+  jal PauseRSP
+  nop
+  jal Wait_SP_DMA_FULL_REG
+  nop
+
+; DMA to DMEM
+  la      a0,0x0
+  move    a1, t1
+  li      a2,0x1000-8
+  lui     t0,$a404
+  sw      a0,0(t0)        ; a0=rspdest
+  sw      a1,4(t0)        ; a1=dram
+  sw      a2,8(t0)        ; a2=size
+
+  jal Wait_SP_DMA_FULL_REG
+  nop
+  jal ResumeRSP
+  nop
+
+  ; restore NES registers
   _tpa(ld, A6502_flags, A6502_flags_BAK)
   _tpa(ld, A6502_PC, A6502_PC_BAK)
   _tpa(ld, A6502_X, A6502_X_BAK)
@@ -90,7 +135,7 @@ SAVE_NES_SRAM_TO_N64_SRAM
   _tpa(sw,ra,sram64drivera)
 
 ; write NES-SRAM header to ExMem
-  la t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x7000
+  la t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x8000 ;(NES-SRAM stored after SRAM SaveState)
   _tpa(ld, t0, SRAM_HEADER)
   sd t0,(t2)
   addi t2,8
@@ -123,7 +168,7 @@ SAVE_NES_SRAM_TO_N64_SRAM
   sw v1,0x10(v0) ;PI_STATUS_REG
 
 ; IO_WRITE(PI_DRAM_ADDR_REG, src);
-  la v1,(SRAM_STATE_RAMADRESS + 0x8000 + 0x7000) & 0x1FFFFFFF
+  la v1,(SRAM_STATE_RAMADRESS + 0x8000 + 0x8000) & 0x1FFFFFFF
   sw v1,0x00(v0) ;PI_DRAM_ADDR_REG
 
 ; IO_WRITE(PI_CART_ADDR_REG, (0xA8000000 + offset) & 0x1FFFFFFF);
@@ -156,7 +201,7 @@ LOAD_NES_SRAM_FROM_N64_SRAM
   _tpa(sw,ra,sram64drivera)
 
 ; clear ExMem area to avoid memory garbage
-  la t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x7000
+  la t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x8000 ;(NES-SRAM stored after SRAM SaveState) 
   la t0, (0x2000/8)+2 -1
 ExMemClear
   sd  r0,(t2)
@@ -182,7 +227,7 @@ ExMemClear
   sw v1,0x10(v0) ;PI_STATUS_REG
 
 ; IO_WRITE(PI_DRAM_ADDR_REG, src);
-  la v1,(SRAM_STATE_RAMADRESS + 0x8000 + 0x7000) & 0x1FFFFFFF
+  la v1,(SRAM_STATE_RAMADRESS + 0x8000 + 0x8000) & 0x1FFFFFFF
   sw v1,0x00(v0) ;PI_DRAM_ADDR_REG
 
 ; IO_WRITE(PI_CART_ADDR_REG, (0xA8000000 + offset) & 0x1FFFFFFF);
@@ -206,7 +251,7 @@ ExMemClear
   nop
 
 ; check header and footer
-  la  t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x7000
+  la  t2, SRAM_STATE_RAMADRESS + 0x8000 + 0x8000
   _tpa(ld, t3, SRAM_HEADER)
   ld  t1,(t2)
   bne t3,t1,N64loadSRAMend
@@ -219,7 +264,7 @@ ExMemClear
 
 ; load ExMem SRAM to NES-SRAM
   la  t0, (0x2000/8) -1
-  la  t1, SRAM_STATE_RAMADRESS + 0x8000 + 0x7000 + 0x8
+  la  t1, SRAM_STATE_RAMADRESS + 0x8000 + 0x8000 + 0x8
   la  t2, sram
   jal memcopy
   nop
@@ -253,22 +298,51 @@ SaveStateSRAM
 
 ; copy blocks to ExMem_SRAM_STATE
 
-; store bgbuffer - bgline
-  la  t0, (pattblc-bgbuffer-1)/8
-  la  t1, bgbuffer
+; write NES-SRAM header to ExMem
   la  t2, SRAM_STATE_RAMADRESS
+  _tpa(ld, t0, SRAM_HEADER)
+  sd t0,(t2)
+  addi t2,8
+; store bgbuffer - bgline
+  la  t0, ((pattblc-bgbuffer)/8)-1
+  la  t1, bgbuffer
   jal memcopy
   nop
 ; store _SPRRAM - _bgpal
-  la  t0, (nops-_SPRRAM-1)/8
+  la  t0, ((nops-_SPRRAM)/8)-1
   la  t1, _SPRRAM
   jal memcopy
   nop
 ; cached + NES registers
-  la  t0, ((lastvar&$8fffffff-mem-1)/8) ;+10
+  la  t0, ((lastvar&$8fffffff-mem)/8)-1
   la  t1, mem
   jal memcopy
   nop
+
+; Store PPU data
+  jal PauseRSP
+  nop
+  jal Wait_SP_DMA_FULL_REG
+  nop
+
+; DMA from DMEM
+  la      a0,0x0
+  move    a1, t2
+  li      a2,0x1000-8
+  lui     t0,$a404
+  sw      a0,0(t0)        ; a0=rspdest
+  sw      a1,4(t0)        ; a1=dram
+  sw      a2,0x0C(t0)     ; a2=size
+
+  jal Wait_SP_DMA_FULL_REG
+  nop
+  jal ResumeRSP
+  nop
+
+; write NES-SRAM footer to ExMem
+  addi t2,0x1000
+  _tpa(ld, t0, SRAM_FOOTER)
+  sd t0,(t2)
 
 ; copy to SRAM
   jal disable_interrupts
@@ -333,7 +407,7 @@ SaveStateSRAM
 
 ; IO_WRITE(PI_RD_LEN_REG, (size - 1));
   la v0,0xA4600000 ;PI_BASE_REG
-  la v1,0x6E5E ; Partial Chip3 (Remaining State Area)
+  la v1,0x7E5F+8+8 ; Partial Chip3 (Remaining State Area)
   sw v1,0x08(v0) ;PI_RD_LEN_REG
 
   jal PI_DMAWait
@@ -342,9 +416,10 @@ SaveStateSRAM
   jal enable_interrupts
   nop
 
-; restore v0+v1
-  _tpa(ld, A6502_regval, A6502_regval_BAK)
-  _tpa(ld, A6502_instrcnt, A6502_instrcnt_BAK)
+  ; restore a0, a1, a2
+  _tpa(ld, A6502_mempage, A6502_mempage_BAK)
+  _tpa(ld, A6502_readfcn, A6502_readfcn_BAK)
+  _tpa(ld, A6502_writefcn, A6502_writefcn_BAK)
 
   _tpa(lw,ra,sram64drivera)
   jr ra
@@ -355,7 +430,18 @@ SaveStateSRAM
 LoadStateSRAM
   _tpa(sw,ra,sram64drivera)
 
-; copy to SRAM
+; backup a0, a1, a2 if SRAM load fails
+  _tpa(sd, A6502_mempage, A6502_mempage_BAK)
+  _tpa(sd, A6502_readfcn, A6502_readfcn_BAK)
+  _tpa(sd, A6502_writefcn, A6502_writefcn_BAK)
+
+; clear Header and Footer in ExMem area to avoid memory garbage
+  la t2, SRAM_STATE_RAMADRESS
+  sd r0,(t2)
+  la t2, SRAM_STATE_RAMADRESS+0x8000+0x7E60+8 ; CHIP2 + CHIP3 + HEADER
+  sd r0,(t2)
+
+; load from SRAM
   jal disable_interrupts
   nop
   jal PI_DMAWait
@@ -418,7 +504,7 @@ LoadStateSRAM
 
 ; IO_WRITE(PI_WR_LEN_REG, (size - 1));
   la v0,0xA4600000 ;PI_BASE_REG
-  la v1,0x6E5E ; Partial Chip3 (Remaining State Area)
+  la v1,0x7E5F+8+8 ; Partial Chip3 (Remaining State Area)
   sw v1,0x0C(v0) ;PI_WR_LEN_REG
 
   jal PI_DMAWait
@@ -427,23 +513,64 @@ LoadStateSRAM
   jal enable_interrupts
   nop
 
+; check header and footer
+  la  t2, SRAM_STATE_RAMADRESS
+  _tpa(ld, t3, SRAM_HEADER)
+  ld  t1,(t2)
+  bne t3,t1,N64loadStateSRAMend
+  nop
+  la  t2, SRAM_STATE_RAMADRESS+0x8000+0x7E60+8 ; CHIP2 + CHIP3 + HEADER
+  _tpa(ld, t3, SRAM_FOOTER)
+  ld t1,(t2)
+  bne t3,t1,N64loadStateSRAMend
+  nop
+
 ; copy blocks from ExMem_SRAM_STATE
 ; load bgbuffer - bgline
-  la  t0, (pattblc-bgbuffer-1)/8
-  la  t1, SRAM_STATE_RAMADRESS
+  la  t1, SRAM_STATE_RAMADRESS+8
+  la  t0, ((pattblc-bgbuffer)/8)-1
   la  t2, bgbuffer
   jal memcopy
   nop
 ; load _SPRRAM - _bgpal
-  la  t0, (nops-_SPRRAM-1)/8
+  la  t0, ((nops-_SPRRAM)/8)-1
   la  t2, _SPRRAM
   jal memcopy
   nop
 ; cached + NES registers
-  la  t0, ((lastvar&$8fffffff-mem-1)/8) ; + 10
+  la  t0, ((lastvar&$8fffffff-mem)/8)-1
   la  t2, mem
   jal memcopy
   nop
+
+; Restore PPU data
+  jal PauseRSP
+  nop
+  jal Wait_SP_DMA_FULL_REG
+  nop
+
+; DMA to DMEM
+  la      a0,0x0
+  move    a1, t1
+  li      a2,0x1000-8
+  lui     t0,$a404
+  sw      a0,0(t0)        ; a0=rspdest
+  sw      a1,4(t0)        ; a1=dram
+  sw      a2,8(t0)        ; a2=size
+
+  jal Wait_SP_DMA_FULL_REG
+  nop
+  jal ResumeRSP
+  nop
+
+; invalidate NES Graphics Compiler Cache
+  la      t1,((_VRAM_V2-metacache)/8)-1
+  la      t0,metacache
+metaclearloop
+  sd      r0,(t0)
+  addi    t0,8
+  bnez    t1,metaclearloop
+  addi    t1,-1
 
  ; restore NES registers
    _tpa(ld, A6502_flags, A6502_flags_BAK)
@@ -454,13 +581,17 @@ LoadStateSRAM
    _tpa(ld, A6502_S, A6502_S_BAK)
    _tpa(ld, A6502_count, A6502_count_BAK)
    _tpa(ld, A6502_nespage, A6502_nespage_BAK)
-   _tpa(ld, A6502_mempage, A6502_mempage_BAK)
-   _tpa(ld, A6502_readfcn, A6502_readfcn_BAK)
-   _tpa(ld, A6502_writefcn, A6502_writefcn_BAK)
    _tpa(ld, A6502_return, A6502_return_BAK)
+   _tpa(ld, A6502_instrcnt, A6502_instrcnt_BAK)
    _tpa(ld, A6502_regaddr, A6502_regaddr_BAK)
    _tpa(ld, A6502_regval, A6502_regval_BAK)
-   _tpa(ld, A6502_instrcnt, A6502_instrcnt_BAK)
+
+N64loadStateSRAMend
+
+; always restore a0, a1, a2
+  _tpa(ld, A6502_mempage, A6502_mempage_BAK)
+  _tpa(ld, A6502_readfcn, A6502_readfcn_BAK)
+  _tpa(ld, A6502_writefcn, A6502_writefcn_BAK)
 
   _tpa(lw,ra,sram64drivera)
   jr ra
@@ -550,6 +681,33 @@ PI_Init_SRAM
   sw v1,48(v0) ;PI_BSD_DOM2_RLS_REG
   jr ra
   nop
+
+; #####################################
+
+ResumeRSP
+  li      t0,$1000
+  _tpa(sw,t0,$a4080000)   ; set PC
+  li      t0,%100101101   ; clear all, set int on break
+  _tpa(sw,t0,0xa4040010)  ; set status
+  jr ra
+  nop
+
+; #####################################
+
+PauseRSP
+  li      t0,2            ; on boot we halt the RSP
+  _tpa(sw,t0,0xa4040010)
+  jr ra
+  nop
+
+; #####################################
+
+Wait_SP_DMA_FULL_REG
+  _tpa(lw,t0,$a4040014)
+   bnez    t0,Wait_SP_DMA_FULL_REG
+   nop
+   jr ra
+   nop
 
 ; #####################################
 

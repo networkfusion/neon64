@@ -59,7 +59,7 @@ destination ; absolute target for loadcode (GS ver)
 SPdeviceFULL    _tpa(lw,t0,$a4040014)
                 bnez    t0,SPdeviceFULL
                 nop
-        
+
                 ; Load the PPU data (mostly the page table)
                 la      a0,0x0
                 la      a1,rspdataa
@@ -72,7 +72,7 @@ SPdeviceFULL    _tpa(lw,t0,$a4040014)
 SPdeviceFULL1   _tpa(lw,t0,$a4040014)
                 bnez    t0,SPdeviceFULL1
                 nop
-                
+
                 ; Load the PPU microcode
                 la      a0,0x1000
                 la      a1,rsptext
@@ -126,7 +126,7 @@ storeloop       lw      a3,0(a0)
 
                 j       pastintstuff
                 nop
-                
+
 ; As long as k1 is never used in the rest of the program, this will work
 intvector       la      k1,inthandler
                 jr      k1
@@ -151,9 +151,9 @@ inthandler      la      k1,s8save
                 nop
                 deadend
 justaninterrupt:
-                
+
                 ; Any interrupt handler would go here.
-                
+
                 andi    s8,k1,0x1000    ; "pre-NMI"
                 beqz    s8,notreset
                 nop
@@ -315,7 +315,7 @@ setupVIhires
     nop
 
     ; Control
-    la      t1, 0x00013002  ; 16 bit/pixel
+    la      t1, 0x00003002  ; 16 bit/pixel
     sw      t1, 0(t0)
     ; framebuffer
     la      t1, screenbuffer
@@ -365,7 +365,7 @@ setupVIhires
 setupVIhiresPAL
 
     ; Control
-    la      t1, 0x00013002  ; 16 bit/pixel
+    la      t1, 0x00003002  ; 16 bit/pixel
     sw      t1, 0(t0)
     ; framebuffer
     la      t1, screenbuffer
@@ -495,7 +495,7 @@ pastintstuff:   _tpa(lbu,t0,resetflag)
                 _tpa(sb,r0,resetflag)
                 bnez    t0,nowait
                 nop
-                
+
                 jal     Pause   ; wait for the user to load the ROM
                 nop
 
@@ -519,7 +519,7 @@ nowait
     mtc0    r0,count
     la      t0,50000000/fpsrate
     mtc0    t0,compare
-    
+
     mfc0    t0,status   ; activate count
     ori     t0,$8000
     mtc0    t0,status
@@ -548,7 +548,7 @@ memclearloopc   sb      r0,(t1)
                 ; needs to be init'd, or mapper errors get written over code!
                 la      t0,screenbuffer
                 _tpa(sw,t0,scrbuf)
-    
+
                 ; load default nespages
                 la      t0,npt_init
                 li      t1,0x800-1

@@ -30,13 +30,13 @@ menucopy    ld      t3,(t0)
         la      t0,screenbuffer3
         _tpa(sw,t0,$a4400004)
 
-        _text_string(40,50,menuframe)
+        _text_string(32,50,menuframe)
         li  t4,0    ; first menu item selected initially
 
 menu_run_loop
         li  t1,0
         li  t3,58
-        li  t0,48
+        li  t0,40
         _tpa(sw,t0,text_x)
         _tpa(sw,r0,text_type)
 highlightloop
@@ -96,7 +96,7 @@ menu0_no
         j       loadnewrom
         nop
 menu1_no
-        bnez    t4,menu2_no ; save SRAM
+        bnez    t4,menu2_no ; save SRAM to C-Pak
         addi    t4,-1
 
         _tpa(lbu,t0,romc1)
@@ -109,7 +109,19 @@ menu1_no
 noSRAMsave  j       menuend
         nop
 menu2_no
-        bnez    t4,menu3_no ; PAL mode
+        bnez    t4,menu3_no ; save NES-SRAM to N64-SRAM
+        addi    t4,-1
+
+        _tpa(lbu,t0,romc1)
+        andi    t0,2
+        beqz    t0,noSRAMsave
+        nop
+        jal     SAVE_NES_SRAM_TO_N64_SRAM
+        nop
+        j       menuend
+        nop
+menu3_no
+        bnez    t4,menu4_no ; PAL mode
         addi    t4,-1
         _tpa(lbu,t0,vidmode)
         xori    t0,1
@@ -126,8 +138,8 @@ menu2_no
 
         j       menuend
         nop
-menu3_no
-        bnez    t4,menu4_no ; take screen shot
+menu4_no
+        bnez    t4,menu5_no ; take screen shot
         addi    t4,-1
 
         _tpa(lw,t0,menuscrtemp)
@@ -140,8 +152,8 @@ menu3_no
 
         j       menuend
         nop
-menu4_no
-        bnez    t4,menu5_no ; frame by frame
+menu5_no
+        bnez    t4,menu6_no ; frame by frame
         addi    t4,-1
         _tpa(lbu,t0,fbfflag)
         xori    t0,1
@@ -151,8 +163,8 @@ menu4_no
         nop
         j       menuend
         nop
-menu5_no
-        bnez    t4,menu6_no ; FPS
+menu6_no
+        bnez    t4,menu7_no ; FPS
         addi    t4,-1
         _tpa(lbu,t0,frametoggle)
         xori    t0,1
@@ -162,8 +174,8 @@ menu5_no
         nop
         j       menuend
         nop
-menu6_no
-        bnez    t4,menu7_no ; Arkanoid controller
+menu7_no
+        bnez    t4,menu8_no ; Arkanoid controller
         addi    t4,-1
         _tpa(lbu,t0,arkflag)
         xori    t0,1
@@ -173,9 +185,9 @@ menu6_no
         nop
         j       menuend
         nop
-menu7_no
+menu8_no
 
-        bnez    t4,menu8_no ; dmc enable
+        bnez    t4,menu9_no ; dmc enable
         addi    t4,-1
         _tpa(lbu,t0,dmcenable)
         xori    t0,1
@@ -183,9 +195,9 @@ menu7_no
         la      t4,dmctog
         jal     togglewrite
         nop
-menu8_no
+menu9_no
 
-        bnez    t4,menu9_no ; trap errors
+        bnez    t4,menua_no ; trap errors
         addi    t4,-1
         _tpa(lbu,t0,traperrors)
         xori    t0,1
@@ -196,26 +208,14 @@ menu8_no
         nop
         j       menuend
         nop
-menu9_no
-        bnez    t4,menua_no ; debug info
+menua_no
+        bnez    t4,menub_no ; debug info
         addi    t4,-1
         jal     cls
         nop
         jal     a6502_status
         nop
         jal     pause
-        nop
-        j       menuend
-        nop
-menua_no
-        bnez    t4,menub_no ; save NES-SRAM to N64-SRAM
-        addi    t4,-1
-
-        _tpa(lbu,t0,romc1)
-        andi    t0,2
-        beqz    t0,noSRAMsave
-        nop
-        jal     SAVE_NES_SRAM_TO_N64_SRAM
         nop
         j       menuend
         nop
@@ -329,23 +329,23 @@ menu_cnt equ 16
 menu0       db "*Reset NES",0
 menu1       db "*Load new ROM - GS",0
 menu2       db "*Save NES-SRAM - C-Pak",0
-menu3       db "*PAL Mode "
+menu3       db "*Save NES-SRAM - 64-SRAM",0
+menu4       db "*PAL Mode "
 paltog      db "Off",0
-menu4       db "*Screenshot - v64jr",0
-menu5       db "*Frame-by-frame "
+menu5       db "*Screenshot - v64jr",0
+menu6       db "*Frame-by-frame "
 fbftog      db "Off",0
-menu6       db "*FPS "
+menu7       db "*FPS "
 fpstog      db "Off",0
-menu7       db "*Arkanoid paddle "
+menu8       db "*Arkanoid paddle "
 arktog      db "Off",0
-menu8       db "*DMC "
+menu9       db "*DMC "
 dmctog      db "On ",0
-menu9       db "*Error trapping "
+menua       db "*Error trapping "
 errtog      db "Off",0
-menua       db "*Debug info",0
+menub       db "*Debug info",0
 toggleon    db "On",0
 toggleoff   db "Off",0
-menub       db "*Save NES-SRAM - 64-SRAM",0
 menuc       db "*Load State <- 64-SRAM",0
 menud       db "*Save State -> 64-SRAM",0
 menue       db "*Load State <- ExMem",0
