@@ -8,8 +8,8 @@ menu    _tpa(sw,ra,menura)
 
         la      t1,bgline-abuf1-1
         la      t0,abuf1
-        lb      t2,(t0) ; copy first byte to whole buffer for smoothness
-clearaudioloop  sb      t2,(t0)
+clearaudioloop ; copy zero to whole buffer for silence
+        sb      r0,(t0)
         addi    t0,1
         bnez    t1,clearaudioloop
         addi    t1,-1
