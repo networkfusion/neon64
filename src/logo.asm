@@ -27,4 +27,5 @@ logo00  db $0b,"                        ллллллллллл",$0a
         db     "         Neon64 1.2b                         66666666   44444444",$0a
         db     "           8/17/05                           66    66         44",$0a
         db     "                                             66    66         44",$0a
-        db     "       64drive Mod 0.3 by Visor              66666666         44",0
+        db     "       64drive Mod 0.3b by Visor             66666666         44",0
+ 

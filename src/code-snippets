@@ -1,0 +1,65 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+### print register value ###
+
+jal cls
+nop
+
+la t0, SPRRAM
+_text_value(10,130,t0,7)
+la t0, bgsprline
+_text_value(10,140,t0,7)
+
+jal Pause
+nop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+### print full 64bit of register ###
+
+_text_value(10,50,t3,7)
+_text_value(10,60,t1,7)
+dsrl32 t4, t3, 0
+dsrl32 t5, t1, 0
+_text_value(100,50,t4,7)
+_text_value(100,60,t5,7)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+### taken from Majoras Mask ###
+
+data_cache_writeback_all
+  lui t0,32768 ; osWritebackDCacheAll
+  li t2,0x2000
+  addu t1,t0,t2
+  addiu t1,t1,0xfffffff0
+cacheWriteLoop
+  cache 0x1,0x0000(t0)
+  sltu t3,t0,t1
+  bnez t3,cacheWriteLoop
+  addiu t0,t0,0x0010
+  jr ra
+  nop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+COP0 = memory management unit (MMU). Better known as 'virtual memory'.
+COP1 = floating-point unit (FPU).
+COP2 = video coprocessor (RCP).
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+CEN64 Calls
+
+la t0,0xA4600000                  ;PI_BASE_REG
+li t1,0x3                         ;IO_WRITE(PI_STATUS_REG, 0x03);
+sw t1,0x10(t0)                    ;PI_STATUS_REG
+la t1,0x0043454E                  ;IO_WRITE(PI_DRAM_ADDR_REG, CEN64);
+sw t1,0x00(t0)                    ;PI_DRAM_ADDR_REG
+la t1,0x0                         ;IO_WRITE(PI_CART_ADDR_REG, 0);
+sw t1,0x04(t0)                    ;PI_CART_ADDR_REG
+la t1,0x0001                      ;IO_WRITE(PI_WR_LEN_REG, ID);
+;la t1,0x0002                      ;IO_WRITE(PI_WR_LEN_REG, ID);
+sw t1,0x0C(t0)                    ;PI_WR_LEN_REG
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -30,13 +30,13 @@ menucopy    ld      t3,(t0)
         la      t0,screenbuffer3
         _tpa(sw,t0,$a4400004)
 
-        _text_string(32,50,menuframe)
+        _text_string(35,45,menuframe)
         li  t4,0    ; first menu item selected initially
 
 menu_run_loop
         li  t1,0
-        li  t3,58
-        li  t0,40
+        li  t3,53 ; Y
+        li  t0,43 ; X
         _tpa(sw,t0,text_x)
         _tpa(sw,r0,text_type)
 highlightloop
@@ -139,7 +139,7 @@ menu3_no
         j       menuend
         nop
 menu4_no
-        bnez    t4,menu5_no ; take screen shot
+        bnez    t4,menu5_no ; take screen shot v64jr
         addi    t4,-1
 
         _tpa(lw,t0,menuscrtemp)
@@ -153,7 +153,14 @@ menu4_no
         j       menuend
         nop
 menu5_no
-        bnez    t4,menu6_no ; frame by frame
+        bnez    t4,menu6_no ; take screen shot 64driveUSB
+        addi    t4,-1
+        jal     screen_capture_64drive
+        nop
+        j       menuend
+        nop
+menu6_no
+        bnez    t4,menu7_no ; frame by frame
         addi    t4,-1
         _tpa(lbu,t0,fbfflag)
         xori    t0,1
@@ -163,8 +170,8 @@ menu5_no
         nop
         j       menuend
         nop
-menu6_no
-        bnez    t4,menu7_no ; FPS
+menu7_no
+        bnez    t4,menu8_no ; FPS
         addi    t4,-1
         _tpa(lbu,t0,frametoggle)
         xori    t0,1
@@ -174,8 +181,8 @@ menu6_no
         nop
         j       menuend
         nop
-menu7_no
-        bnez    t4,menu8_no ; Arkanoid controller
+menu8_no
+        bnez    t4,menu9_no ; Arkanoid controller
         addi    t4,-1
         _tpa(lbu,t0,arkflag)
         xori    t0,1
@@ -185,9 +192,9 @@ menu7_no
         nop
         j       menuend
         nop
-menu8_no
+menu9_no
 
-        bnez    t4,menu9_no ; dmc enable
+        bnez    t4,menua_no ; dmc enable
         addi    t4,-1
         _tpa(lbu,t0,dmcenable)
         xori    t0,1
@@ -195,9 +202,9 @@ menu8_no
         la      t4,dmctog
         jal     togglewrite
         nop
-menu9_no
+menua_no
 
-        bnez    t4,menua_no ; trap errors
+        bnez    t4,menub_no ; trap errors
         addi    t4,-1
         _tpa(lbu,t0,traperrors)
         xori    t0,1
@@ -208,8 +215,8 @@ menu9_no
         nop
         j       menuend
         nop
-menua_no
-        bnez    t4,menub_no ; debug info
+menub_no
+        bnez    t4,menuc_no ; debug info
         addi    t4,-1
         jal     cls
         nop
@@ -219,22 +226,22 @@ menua_no
         nop
         j       menuend
         nop
-menub_no
-        bnez    t4,menuc_no ; load state from N64-SRAM
+menuc_no
+        bnez    t4,menud_no ; load state from N64-SRAM
         addi    t4,-1
         jal     LoadStateSRAM
         nop
         j       menuend
         nop
-menuc_no
-        bnez    t4,menud_no ; save state to N64-SRAM
+menud_no
+        bnez    t4,menue_no ; save state to N64-SRAM
         addi    t4,-1
         jal     SaveStateSRAM
         nop
         j       menuend
         nop
-menud_no
-        bnez    t4,menue_no ; load state from ExMem
+menue_no
+        bnez    t4,menuf_no ; load state from ExMem
         addi    t4,-1
         _tpa(lbu,t0,SaveBeforeLoad) ; Need to save once before loading
         blez    t0, noStateload
@@ -243,8 +250,8 @@ menud_no
         nop
 noStateload        j       menuend
         nop
-menue_no
-        bnez    t4,menuf_no ; save state to ExMem
+menuf_no
+        bnez    t4,menug_no ; save state to ExMem
         addi    t4,-1
         li      t0,1
         _tpa(sb,t0,SaveBeforeLoad)
@@ -252,7 +259,7 @@ menue_no
         nop
         j       menuend
         nop
-menuf_no
+menug_no
 
 menuend
 mploop  jal     read_con ; wait until button released so it won't go
@@ -322,9 +329,10 @@ menuframe   db "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿",$0a
             db "³                        ³",$0a
             db "³                        ³",$0a
             db "³                        ³",$0a
+            db "³                        ³",$0a
             db "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ",0
 
-menu_cnt equ 16
+menu_cnt equ 17
 
 menu0       db "*Reset NES",0
 menu1       db "*Load new ROM - GS",0
@@ -333,23 +341,24 @@ menu3       db "*Save NES-SRAM - 64-SRAM",0
 menu4       db "*PAL Mode "
 paltog      db "Off",0
 menu5       db "*Screenshot - v64jr",0
-menu6       db "*Frame-by-frame "
+menu6       db "*Screenshot - 64driveUSB",0
+menu7       db "*Frame-by-frame "
 fbftog      db "Off",0
-menu7       db "*FPS "
+menu8       db "*FPS "
 fpstog      db "Off",0
-menu8       db "*Arkanoid paddle "
+menu9       db "*Arkanoid paddle "
 arktog      db "Off",0
-menu9       db "*DMC "
+menua       db "*DMC "
 dmctog      db "On ",0
-menua       db "*Error trapping "
+menub       db "*Error trapping "
 errtog      db "Off",0
-menub       db "*Debug info",0
+menuc       db "*Debug info",0
 toggleon    db "On",0
 toggleoff   db "Off",0
-menuc       db "*Load State <- 64-SRAM",0
-menud       db "*Save State -> 64-SRAM",0
-menue       db "*Load State <- ExMem",0
-menuf       db "*Save State -> ExMem",0
+menud       db "*Load State <- 64-SRAM",0
+menue       db "*Save State -> 64-SRAM",0
+menuf       db "*Load State <- ExMem",0
+menug       db "*Save State -> ExMem",0
 
 resetflag   db 0
 arkflag     db 0
@@ -360,7 +369,7 @@ frametoggle db 0
 dmcenable   db 1
 VIvidmode   db 0    ; 0=NTSC, 1=PAL (included here to persist past reset)
  _align(4)
-menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,menub,menuc,menud,menue,menuf,0
+menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,menub,menuc,menud,menue,menuf,menug,0
 menuscrtemp dw  0
 ssntsc
         dw  $ED000000|(8<14)|(8<2)     ; SetScissor NTSC
