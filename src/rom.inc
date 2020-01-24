@@ -20,13 +20,13 @@ loadROM:
                 nop
                 j       loadnewrom
                 nop
-goodfmt:        
+goodfmt:
 
                 ;_tpa(lbu,t0,prgromsize)    ; 16K PRG-ROM page count
                 ;sll     t0, 4
                 ;_text_value(23,8*5+12,t0,3)
                 ;_text_string(8*6+23,8*5+12,PRGCOUNTmsg)
-                
+
                 ;_tpa(lbu,t0,chrromsize)    ; 8K CHR-ROM page count
                 ;sll     t0, 3
                 ;_text_value(23,8*6+12,t0,3)
@@ -57,8 +57,8 @@ not4screend:
                 ;_text_string(8*11+23,8*7+12,Vmirror)
                 j       aftermirror
                 nop
-hmirrord:       
-                ; Horizontal mirroring                
+hmirrord:
+                ; Horizontal mirroring
                 la      t0,vram
                 _tpa(sw,t0,8*8+_VRAMPages)
                 la      t0,vram-0x400
@@ -68,7 +68,7 @@ hmirrord:
                 _tpa(sw,t0,11*8+_VRAMPages)
                 ;_text_string(8*11+23,8*7+12,Hmirror)
 aftermirror:
-                
+
                 ; Mapper type
                 ;_text_string(23,8*8+12,mappermsg)
                 _tpa(lbu,t0,romc1)
@@ -195,6 +195,18 @@ notmapper7:
                 j       endofloadrom
                 nop
 notmapper9
+                li      t1,10
+                bne     t0,t1,notmapper10
+                nop
+                ; Mapper 10 (MMC4, identical to MMC2 but PRGROM)
+                jal     mmc4prgrom
+                nop
+                jal     nchrrom
+                nop
+
+                j       endofloadrom
+                nop
+notmapper10
                 li      t1,11
                 bne     t0,t1,notmapper11
                 nop
@@ -221,6 +233,25 @@ notmapper11:    li      t1,34
                 j       endofloadrom
                 nop
 notmapper34
+
+                li      t1,65
+                bne     t0,t1,notmapper65
+                nop
+                ; Mapper 65 (Dragon Warrior II, should be Mapper 1)
+                li      t0,1
+                _tpa(sb,t0,mapper)
+
+                jal     unprgrom
+                nop
+                jal     nchrrom
+                nop
+
+                li      t0,$c   ; on reset based on matt richey
+                _tpa(sb,t0,mmc1reg)
+
+                j       endofloadrom
+                nop
+notmapper65:
 
                 li      t1,66
                 bne     t0,t1,notmapper66
@@ -305,9 +336,9 @@ comp_load
                 _tpa(lw,ra,loadromra)
                 jr      ra
                 nop
-                
+
 ; Some modules for loadROM
-                
+
 nprgrom         ; No Mapper (NROM)-style PRGROM load
                 ; The PRG-ROM pages are initially set up for 16K, if we have
                 ;  32K we need to reset the PRG-ROM mirroring.
@@ -336,13 +367,13 @@ nchrrom         ; No Mapper (NROM)-style CHRROM load
                 sll     t0,14
                 beqz    t2,nochrrom
                 addu    t0,t1
-                
+
                 ; Pattern table 0
                 _tpa(sw,t0,0*8+_vrampages)
                 _tpa(sw,t0,1*8+_vrampages)
                 _tpa(sw,t0,2*8+_vrampages)
                 _tpa(sw,t0,3*8+_vrampages)
-                                
+
                 _tpa(sw,t0,0*8+vrampages+rspdata)
                 _tpa(sw,t0,1*8+vrampages+rspdata)
                 _tpa(sw,t0,2*8+vrampages+rspdata)
@@ -359,7 +390,7 @@ nchrrom         ; No Mapper (NROM)-style CHRROM load
                 _tpa(sw,t0,6*8+vrampages+rspdata)
                 _tpa(sw,t0,7*8+vrampages+rspdata)
 
-nochrrom:                
+nochrrom:
                 jr      ra
                 nop
 
@@ -409,6 +440,27 @@ map9resetPRGloop
                 jr      ra
                 nop
 
+mmc4prgrom      ; Mapper #10 (MMC4)-style PRGROM load
+                ; first 16k ROM bank at $8000,
+                ; last 16k ROM bank at $c000
+                _tpa(lbu,t2,prgromsize)
+                nop
+                addi    t2,-1   ; last page
+                sll     t2,10+4 ; 16 K
+                la      t1,prgrom
+                addu    t2,t1
+                li      t1,0xC000
+                subu    t2,t1
+
+                li      t1,0x40-1
+                la      t3,nespagetable+(0xC0*4)
+map10resetPRGloop
+                sw      t2,(t3)
+                addi    t3,4
+                bnez    t1,map10resetPRGloop
+                addi    t1,-1
+                jr      ra
+                nop
 
 ; ROM info
 prgromsize:     equ     proga+4

@@ -35,7 +35,7 @@ ageinit         sw      t2,(t0)
                 la      A6502_readfcn,Read6502
                 la      A6502_writefcn,Write6502
                 la      A6502_instrcnt,1
-                              
+
                 li      A6502_count,0   ; Initialize periodic count.
 
                 jal     Init6502        ; Reset the 6502.
@@ -74,7 +74,7 @@ nokillframe     _tpa(sw,t1,0xa4040010)
                 _tpa(sw,t2,framecount)
 
                 ; F. 1 idle scanline (for the PPU)
-                
+
                 jal     Run6502         ; 1. Do a scanline of CPU cycles.
                 addi    A6502_count,cyclesperscanline+cyclesperhretrace
 
@@ -115,7 +115,7 @@ notvblankinterrupt
             li      t0,20-2
             li      t0,70-2
 ntscmode
-vretraceloop                
+vretraceloop
                 _tpa(sw,t0,scanleft)
 
                 jal     lineofsound
@@ -145,14 +145,19 @@ vretraceloop
                 addi    A6502_count,cyclesperhretrace
 
                 ; Da Cheat!
-                _tpa(lbu,t0,mapper)
-                li      t1,9
-                bne     t0,t1,mmc2not_1
-                nop
-                li      t0,1
-                _tpa(sb,t0,mmc2_toggle)
-                jal     mmc2latchgfx
-                nop
+               _tpa(lbu,t0,mapper)
+               li      t1,9
+               beq     t0,t1,mmc2_4_hack
+               nop
+mmc4test        ;could probably be more efficient with one flag set for both mapper 9 and 10
+               li      t1,10
+               bne     t0,t1,mmc2not_1
+               nop
+mmc2_4_hack
+               li      t0,1
+               _tpa(sb,t0,mmc2_toggle)
+               jal     mmc2latchgfx
+               nop
 mmc2not_1
 
                 _tpa(lw,t1,_PPUControl2) ; 4. If screen or sprites active v=t
@@ -480,7 +485,7 @@ BootRSP:
                 jr      ra
                 nop
 
-checksp0        
+checksp0
                 _tpa(lb,t1,ppustatus)
                 _tpa(lbu,t0,_SPRRAM+3)
                 andi    t1,0x40
@@ -522,6 +527,7 @@ lastvramaddr    dh  0,0
  j backtotop
  nop
 #include menu.inc
+#include 64drive.inc
 #include ppu.asm
 #include save.inc
 #include cap.asm

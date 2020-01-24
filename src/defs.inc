@@ -202,7 +202,26 @@ mmc3irqon      equne      cbnmi+1
 mapperusessram equne      mmc3irqon+1
 lincnthalt     equne      mapperusessram+1
 traperrors2    equne      lincnthalt+1
-lastvar        equne      traperrors2+1|0xa0000000 ; just a marker
+
+align8         equne     traperrors2+1 ; Align(8) for dw access
+
+A6502_flags_BAK     equne align8+1 ; Register BackUp Section
+A6502_PC_BAK        equne A6502_flags_BAK+8
+A6502_X_BAK         equne A6502_PC_BAK+8
+A6502_Y_BAK         equne A6502_X_BAK +8
+A6502_A_BAK         equne A6502_Y_BAK +8
+A6502_S_BAK         equne A6502_A_BAK +8
+A6502_count_BAK     equne A6502_S_BAK +8
+A6502_nespage_BAK   equne A6502_count_BAK+8
+A6502_mempage_BAK   equne A6502_nespage_BAK+8
+A6502_readfcn_BAK   equne A6502_mempage_BAK+8
+A6502_writefcn_BAK  equne A6502_readfcn_BAK+8
+A6502_return_BAK    equne A6502_writefcn_BAK+8
+A6502_regaddr_BAK   equne A6502_return_BAK+8
+A6502_instrcnt_BAK  equne A6502_regaddr_BAK+8
+A6502_regval_BAK    equne A6502_instrcnt_BAK+8
+
+lastvar        equne      A6502_regval_BAK+8|0xa0000000 ; just a marker
 
 proga          equne      0xa0300000
 prog           equne      proga+16

@@ -12,7 +12,7 @@ Write6502:
         li      A6502_compaddr,1
 
         ; PPU Control Register 1
-        
+
         _tpa(sw,A6502_regval,rspdata+PPUControl1)
         _tpa(sw,A6502_regval,_PPUControl1)
 
@@ -24,13 +24,13 @@ Write6502:
         or      t4,t5
         _tpa(lw,t5,lastppu1)
         _tpa(sw,t4,_VRAM_T)
-        
+
         jr      A6502_return
         nop
 notwppu1
         bne     A6502_maskedaddr,A6502_compaddr,notwppu2
         li      A6502_compaddr,3
-        
+
         ; PPU Control Register 2
 
         _tpa(lw,t4,_PPUControl2)
@@ -138,9 +138,9 @@ notwppu2
 notsprramaddr
         bne     A6502_maskedaddr,A6502_compaddr,notsprram
         li      A6502_compaddr,5
-        
+
         ; SPRRAM write register
-        
+
         _tpa(lw,t4,sprramaddr)
         _vtpa(sb,A6502_regval,_SPRRAM,t4)
         addi    t4,1
@@ -155,9 +155,9 @@ notsprramaddr
 notsprram
         bne     A6502_maskedaddr,A6502_compaddr,notvaddr5
         li      A6502_compaddr,6
-        
+
         ; VRAM Address Register #1
-        
+
         ; a write to 2005, as described by loopy
         _tpa(lw,t4,pputoggle)
         _tpa(lw,t5,_VRAM_T)
@@ -188,9 +188,9 @@ second5write
 notvaddr5
         bne     A6502_maskedaddr,A6502_compaddr,notvaddr6
         li      A6502_compaddr,7
-        
+
         ; VRAM Address Register #2
-        
+
         ; a write to 2006, as described by loopy
         _tpa(lw,t4,pputoggle)
         _tpa(lw,t5,_VRAM_T)
@@ -220,7 +220,7 @@ notvaddr6
         bne     A6502_maskedaddr,A6502_compaddr,notwritevram
         nop     ; no more low regs to write
 
-        ; VRAM I/O Register        
+        ; VRAM I/O Register
         ; This is a VRAM write
 
         _tpa(lw,t5,_PPUControl1)
@@ -444,8 +444,8 @@ dmcirqflag_not
 notDMC
         bne     A6502_compaddr,A6502_regaddr,notSPRDMA
         li      A6502_compaddr,0x4016
-        
-        ; SPRRAM DMA                
+
+        ; SPRRAM DMA
 
         addi    A6502_count,-sprdmalatency
 
@@ -528,7 +528,7 @@ map2
         nop
         mfhi    A6502_regval
         nop
-        
+
         sll     A6502_regval,10+4 ; 16K
         la      t5,prgrom
         addu    t5,A6502_regval
@@ -542,7 +542,7 @@ map2PRGloop
         addi    t7,4
         bnez    t6,map2PRGloop
         addi    t6,-1
-        
+
         jr      A6502_return
         nop
 
@@ -625,6 +625,9 @@ map7end
 map9
 #include mmc2.inc
 
+map10
+#include mmc4.inc
+
 map11
         _tpa(lbu,t5,prgromsize)
         andi    t4,A6502_regval,0x0f
@@ -666,7 +669,7 @@ map11PRGloop
         _tpa(cache,25,2*8+_vrampages)
         _tpa(sw,t4,3*8+_vrampages)
         _tpa(cache,25,3*8+_vrampages)
-                
+
         ; Pattern table 1
         _tpa(sw,t4,4*8+_vrampages)
         _tpa(cache,25,4*8+_vrampages)
@@ -713,7 +716,7 @@ map34   _tpa(lbu,t5,prgromsize)
         nop
         mfhi    A6502_regval
         nop
-        
+
         sll     A6502_regval,10+5 ; 32K
         la      t5,prgrom
         addu    t5,A6502_regval
@@ -793,7 +796,7 @@ vrom8   _tpa(lbu,t4,prgromsize)
         _tpa(cache,25,2*8+_vrampages)
         _tpa(sw,t4,3*8+_vrampages)
         _tpa(cache,25,3*8+_vrampages)
-                
+
         ; Pattern table 1
         _tpa(sw,t4,4*8+_vrampages)
         _tpa(cache,25,4*8+_vrampages)
@@ -837,7 +840,7 @@ vrom8ra dw  0
  _align(8)
 writera         dw      0,0
 mappertable     dw      map0,map1,map2,map3,map4,0,0,map7
-                dw      0,map9,0,map11,0,0,0,0
+                dw      0,map9,map10,map11,0,0,0,0
                 dcw     8,0
                 dcw     8,0
                 dw      0,0,map34,0,0,0,0,0

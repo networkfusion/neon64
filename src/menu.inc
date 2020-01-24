@@ -29,7 +29,7 @@ menucopy    ld      t3,(t0)
         addi    t2,-8
         la      t0,screenbuffer3
         _tpa(sw,t0,$a4400004)
-            
+
         _text_string(50,50,menuframe)
         li  t4,0    ; first menu item selected initially
 
@@ -208,6 +208,21 @@ menu9_no
         j       menuend
         nop
 menua_no
+        bnez    t4,menub_no ; load state from ExMem
+        addi    t4,-1
+        jal     LoadStateExMem
+        nop
+        j       menuend
+        nop
+menub_no
+        bnez    t4,menuc_no ; save state to ExMem
+        addi    t4,-1
+        jal     SaveStateExMem
+        nop
+        j       menuend
+        nop
+menuc_no
+
 menuend
 mploop  jal     read_con ; wait until button released so it won't go
         nop              ; through to the game
@@ -259,28 +274,30 @@ setscreenlimits
 ;192=À
 ;179=³
 ;217=Ù
-menuframe   db "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "³                    ³",$0a
-            db "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ",0
+menuframe   db "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "³                     ³",$0a
+            db "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ",0
 
-menu_cnt equ 11
+menu_cnt equ 13
 
 menu0       db "*Reset NES",0
-menu1       db "*Load new ROM",0
-menu2       db "*Save SRAM",0
+menu1       db "*Load new ROM - GS",0
+menu2       db "*Save SRAM  - C-Pak",0
 menu3       db "*PAL Mode "
 paltog      db "Off",0
-menu4       db "*Take screenshot",0
+menu4       db "*Screenshot - v64jr",0
 menu5       db "*Frame-by-frame "
 fbftog      db "Off",0
 menu6       db "*FPS "
@@ -293,7 +310,9 @@ menu9       db "*Error trapping "
 errtog      db "Off",0
 menua       db "*Debug info",0
 toggleon    db "On",0
-toggleoff   db "Off"
+toggleoff   db "Off",0
+menub       db "*Load State - ExMem",0
+menuc       db "*Save State - ExMem",0
 
 resetflag   db 0
 arkflag     db 0
@@ -302,8 +321,9 @@ traperrors  db 0
 vidmode     db 0    ; 0=NTSC, 1=PAL
 frametoggle db 0
 dmcenable   db 1
+VIvidmode   db 0    ; 0=NTSC, 1=PAL (included here to persist past reset)
  _align(4)
-menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,0
+menutab dw menu0,menu1,menu2,menu3,menu4,menu5,menu6,menu7,menu8,menu9,menua,menub,menuc,0
 menuscrtemp dw  0
 ssntsc
         dw  $ED000000|(8<14)|(8<2)     ; SetScissor NTSC
